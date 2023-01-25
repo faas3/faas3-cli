@@ -1,0 +1,20 @@
+[package]
+name = "faas3"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.68"
+sui-sdk = { git = "https://github.com/MystenLabs/sui", branch = "devnet" }
+sui-keys = { git = "https://github.com/MystenLabs/sui", branch = "devnet" }
+sui-types = { git = "https://github.com/MystenLabs/sui", branch = "devnet" }
+tokio = { version = "1.24.2", features = ["full"] }
+dirs = "4.0.0"
+reqwest = "0.11.14"
+serde = "1.0.152"
+serde_json = "1.0.91"
+fake = "2.5.0"
+clap = { version = "4.1.4", features = ["derive"] }
+toml = "0.6.0"

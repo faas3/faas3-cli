@@ -61,6 +61,7 @@ enum Commands {
         /// the function name
         name: String,
     },
+    /// list the functions
     List {
         /// the functions of owner
         #[arg(short, long)]

@@ -89,7 +89,6 @@ struct BasicConfig {
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     let cli = Cli::parse();
-
     match &cli.command {
         Some(Commands::Create { name }) => {
             create_action(name.clone()).await?;
@@ -98,7 +97,7 @@ async fn main() -> Result<(), anyhow::Error> {
             deploy_action().await?;
         }
         Some(Commands::Run) => {
-            println!("todo!");
+            println!("🚧 This command is still WIP!");
         }
         Some(Commands::Call { name }) => {
             call_action(name.clone()).await?;
@@ -107,7 +106,7 @@ async fn main() -> Result<(), anyhow::Error> {
             owner: _,
             source: _,
         }) => {
-            println!("todo!")
+            println!("🚧 This command is still WIP!");
         }
         None => {}
     }
@@ -150,12 +149,10 @@ export async function handler(payload = {}) {
 
 async fn deploy_action() -> Result<(), anyhow::Error> {
     let content = collect("main.ts".to_string()).await?;
-
     let conf = fs::read_to_string("config.toml")?;
-    println!("{}", conf);
     let config: Config = toml::from_str(conf.as_str())?;
+    println!("📖 Your Config is {:#?}", config);
 
-    println!("conf::::::::");
     let mut move_func = MoveFunc {
         name: config.basic.name,
         description: config.basic.description,
@@ -166,8 +163,11 @@ async fn deploy_action() -> Result<(), anyhow::Error> {
         object_id: "".to_string(),
     };
 
+    println!("🚀 Deploying it to blockchain...");
     let object_id = mint(&move_func).await?;
     move_func.object_id = object_id;
+
+    println!("🚀 Loading it to remote db...");
     upload(&move_func).await?;
 
     Ok(())
@@ -181,7 +181,7 @@ async fn call_action(name: String) -> Result<(), anyhow::Error> {
         .await?
         .text()
         .await?;
-    println!("{:?}", resp);
+    println!("✅ Your resp is:\n {:#?}", resp);
     Ok(())
 }
 
@@ -204,7 +204,6 @@ async fn upload(move_func: &MoveFunc) -> Result<(), anyhow::Error> {
 }
 
 async fn mint(move_func: &MoveFunc) -> Result<String, anyhow::Error> {
-    println!("mint....");
     let sui = SuiClient::new("https://fullnode.devnet.sui.io:443", None, None).await?;
 
     let keystore_path = default_keystore_path();

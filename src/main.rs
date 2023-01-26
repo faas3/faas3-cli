@@ -83,7 +83,7 @@ struct Config {
 
 #[derive(Debug, Deserialize)]
 struct BasicConfig {
-    _version: String,
+    version: String,
     name: String,
     description: String,
     owner: String,
@@ -150,6 +150,9 @@ export async function handler(payload = {}) {
 
     let main_file = format!("{}/main.ts", &path);
     fs::write(main_file, tpl.trim_start_matches('\n'))?;
+
+    println!("🎉 Awesome, The [{}] function is created!", path);
+    println!("🚑 change the owner to your Sui address!");
 
     Ok(())
 }
@@ -221,7 +224,7 @@ async fn mint(move_func: &MoveFunc) -> Result<String, anyhow::Error> {
     let keystore_path = default_keystore_path();
     let keystore = Keystore::File(FileBasedKeystore::new(&keystore_path)?);
     let my_address = SuiAddress::from_str(move_func.owner.as_str())?;
-    let package_object_id = ObjectID::from_str("0xe911f0d207c930d299d78011e4acba66d1f1eff7")?;
+    let package_object_id = ObjectID::from_str("0x8ea46c0da1d02a0138e513342f07accac01d44a1")?;
 
     let mint_call = sui
         .transaction_builder()

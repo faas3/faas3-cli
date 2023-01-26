@@ -1,3 +1,4 @@
+use anyhow::Ok;
 use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
 use std::fs;
@@ -52,7 +53,7 @@ enum Commands {
         /// the function name
         name: String,
     },
-    /// deploy the function to blockchain
+    /// deploy the function to runtime and blockchain
     Deploy,
     /// local run
     Run,
@@ -67,10 +68,12 @@ enum Commands {
         #[arg(short, long)]
         owner: String,
 
-        /// the funcitons of source, can only be: db or chain
+        /// the funcitons of source, can only be: runtime or chain
         #[arg(short, long)]
         source: String,
     },
+    /// verify the runtime function, which should equal to the on-chain code.
+    Verify { name: String },
 }
 
 #[derive(Debug, Deserialize)]
@@ -106,6 +109,10 @@ async fn main() -> Result<(), anyhow::Error> {
             owner: _,
             source: _,
         }) => {
+            println!("🚧 This command is still WIP!");
+        }
+        Some(Commands::Verify { name }) => {
+            verify_action(name.clone()).await?;
             println!("🚧 This command is still WIP!");
         }
         None => {}
@@ -182,6 +189,11 @@ async fn call_action(name: String) -> Result<(), anyhow::Error> {
         .text()
         .await?;
     println!("✅ Your resp is:\n {:#?}", resp);
+    Ok(())
+}
+
+async fn verify_action(name: String) -> Result<(), anyhow::Error> {
+    println!("🚀 Verifying the function: {}", name);
     Ok(())
 }
 

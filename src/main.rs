@@ -1,7 +1,9 @@
 use anyhow::Ok;
 use clap::{Parser, Subcommand};
+use regex::Regex;
 use serde::{Deserialize, Serialize};
 use std::fs;
+use std::process::Command;
 use std::{path::PathBuf, str::FromStr};
 use sui_keys::keystore::{AccountKeystore, FileBasedKeystore, Keystore};
 use sui_sdk::{
@@ -14,7 +16,6 @@ use sui_sdk::{
 };
 use sui_types::intent::Intent;
 use sui_types::messages::ExecuteTransactionRequestType;
-
 #[derive(Debug, Serialize, Deserialize)]
 struct MoveFunc {
     name: String,
@@ -89,6 +90,12 @@ struct BasicConfig {
     owner: String,
 }
 
+#[derive(PartialEq, Default, Clone, Debug)]
+struct Commit {
+    hash: String,
+    message: String,
+}
+
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {
     let cli = Cli::parse();
@@ -100,7 +107,7 @@ async fn main() -> Result<(), anyhow::Error> {
             deploy_action().await?;
         }
         Some(Commands::Run) => {
-            println!("🚧 This command is still WIP!");
+            run_action().await?;
         }
         Some(Commands::Call { name }) => {
             call_action(name.clone()).await?;
@@ -147,9 +154,18 @@ export async function handler(payload = {}) {
     return m
 }
 "#;
-
     let main_file = format!("{}/main.ts", &path);
     fs::write(main_file, tpl.trim_start_matches('\n'))?;
+
+    let test_tpl = r#"
+// this file is for faas3 run
+import { handler } from "./main.ts";
+
+const res = await handler();
+console.log(res);    
+"#;
+    let test_file = format!("{}/test.ts", &path);
+    fs::write(test_file, test_tpl.trim_start_matches('\n'))?;
 
     println!("🎉 Awesome, The [{}] function is created!", path);
     println!("🚑 change the owner to your Sui address!");
@@ -179,6 +195,22 @@ async fn deploy_action() -> Result<(), anyhow::Error> {
 
     println!("🚀 Loading it to remote db...");
     upload(&move_func).await?;
+
+    Ok(())
+}
+
+async fn run_action() -> Result<(), anyhow::Error> {
+    println!("🎬 Run function local...\n");
+
+    let output = Command::new("deno")
+        .arg("run")
+        .arg("-A")
+        .arg("test.ts")
+        .output()?;
+    if !output.status.success() {
+        panic!("output status error");
+    }
+    println!("{}", String::from_utf8(output.stdout)?);
 
     Ok(())
 }

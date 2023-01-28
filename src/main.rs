@@ -1,6 +1,6 @@
 use anyhow::Ok;
 use clap::{Parser, Subcommand};
-use regex::Regex;
+
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::process::Command;
@@ -129,7 +129,6 @@ async fn main() -> Result<(), anyhow::Error> {
         }
         Some(Commands::Verify { name }) => {
             verify_action(name.clone()).await?;
-            println!("🚧 This command is still WIP!");
         }
         None => {}
     }

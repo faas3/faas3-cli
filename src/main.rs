@@ -6,6 +6,7 @@ use std::fs;
 use std::process::Command;
 use std::{path::PathBuf, str::FromStr};
 use sui_keys::keystore::{AccountKeystore, FileBasedKeystore, Keystore};
+use sui_sdk::rpc_types::SuiData;
 use sui_sdk::{
     json::SuiJsonValue,
     types::{
@@ -25,6 +26,14 @@ struct MoveFunc {
     txn_hash: Option<String>,
     owner: String,
     object_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+struct FaaSNFTMeta {
+    name: String,
+    description: String,
+    url: String,
+    content: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -228,7 +237,36 @@ async fn call_action(name: String) -> Result<(), anyhow::Error> {
 }
 
 async fn verify_action(name: String) -> Result<(), anyhow::Error> {
-    println!("🚀 Verifying the function: {}", name);
+    println!("🚀 Verifying the function: {:?}", name);
+
+    let url = format!("https://faas3.deno.dev/api/functions/{}", &name);
+    let resp: serde_json::Value = reqwest::Client::new().get(url).send().await?.json().await?;
+    let func = serde_json::from_value::<MoveFunc>(resp)?;
+
+    println!("Function in runtime: {:#?}", func);
+
+    let sui = SuiClient::new("https://fullnode.devnet.sui.io:443", None, None).await?;
+    let object_id = ObjectID::from_str(func.object_id.as_str())?;
+    let obj = sui
+        .read_api()
+        .get_parsed_object(object_id)
+        .await?
+        .object()?
+        .data
+        .clone()
+        .try_as_move()
+        .cloned();
+    let fields = match obj {
+        Some(v) => v.fields.to_json_value(),
+        None => {
+            panic!("not obj")
+        }
+    };
+    let meta = serde_json::from_value::<FaaSNFTMeta>(fields?)?;
+    println!("Function in blockchain: {:#?}", meta);
+
+    assert!(meta.content == func.content);
+    println!("{} is verified", &name);
     Ok(())
 }
 

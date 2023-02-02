@@ -1,0 +1,5 @@
+[basic]
+version = "0.0.1" 
+name = "move-did-3" # your function name, it's unique.
+description = ""
+owner = "0x5d547ccd49f6f35fc0dd66fb76e032e8fbf570ff" # Your sui address

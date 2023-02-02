@@ -2,8 +2,8 @@ use anyhow::Ok;
 use clap::{Parser, Subcommand};
 
 use serde::{Deserialize, Serialize};
-use std::fs;
 use std::process::Command;
+use std::{any, fs};
 use std::{path::PathBuf, str::FromStr};
 use sui_keys::keystore::{AccountKeystore, FileBasedKeystore, Keystore};
 use sui_sdk::rpc_types::SuiData;
@@ -72,6 +72,14 @@ enum Commands {
         /// the function name
         name: String,
     },
+    /// remote call the function by post method
+    Post {
+        /// the function name
+        name: String,
+        /// the post body, it's json string
+        #[arg(short, long)]
+        body: String,
+    },
     /// list the functions
     List {
         /// the functions of owner
@@ -120,6 +128,9 @@ async fn main() -> Result<(), anyhow::Error> {
         }
         Some(Commands::Call { name }) => {
             call_action(name.clone()).await?;
+        }
+        Some(Commands::Post { name, body }) => {
+            post_action(name.clone(), body.clone()).await?;
         }
         Some(Commands::List {
             owner: _,
@@ -182,7 +193,7 @@ console.log(res);
 }
 
 async fn deploy_action() -> Result<(), anyhow::Error> {
-    let content = collect("main.ts".to_string()).await?;
+    let content = collect("main.mjs".to_string()).await?;
     let conf = fs::read_to_string("config.toml")?;
     let config: Config = toml::from_str(conf.as_str())?;
     println!("📖 Your Config is {:#?}", config);
@@ -197,9 +208,9 @@ async fn deploy_action() -> Result<(), anyhow::Error> {
         object_id: "".to_string(),
     };
 
-    println!("🚀 Deploying it to blockchain...");
-    let object_id = mint(&move_func).await?;
-    move_func.object_id = object_id;
+    // println!("🚀 Deploying it to blockchain...");
+    // let object_id = mint(&move_func).await?;
+    // move_func.object_id = object_id;
 
     println!("🚀 Loading it to remote db...");
     upload(&move_func).await?;
@@ -212,6 +223,7 @@ async fn run_action() -> Result<(), anyhow::Error> {
 
     let output = Command::new("deno")
         .arg("run")
+        .arg("--unstable")
         .arg("-A")
         .arg("test.ts")
         .output()?;
@@ -232,6 +244,22 @@ async fn call_action(name: String) -> Result<(), anyhow::Error> {
         .text()
         .await?;
     println!("✅ Your resp is:\n {:#?}", resp);
+    Ok(())
+}
+
+async fn post_action(name: String, body: String) -> Result<(), anyhow::Error> {
+    println!("{:?} ==== {:?}", name, body);
+    let url = format!("https://faas3.vercel.app/api/runner/{}", &name);
+    // let url = format!("http://localhost:3000/api/runner/{}", &name);
+    let resp: serde_json::Value = reqwest::Client::new()
+        .post(url)
+        .json(&body)
+        .send()
+        .await?
+        .json()
+        .await?;
+
+    println!("the resp is {:#?}", resp);
     Ok(())
 }
 

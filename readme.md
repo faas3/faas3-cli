@@ -16,3 +16,6 @@ Options:
   -V, --version  Print version
 ```
 
+```
+cargo run -- post next-move --body '{"addr" : "0x2df41622c0c1baabaa73b2c24360d205e23e803959ebbcb0e5b80462165893ed"}'
+```

@@ -62,6 +62,9 @@ enum Commands {
     Create {
         /// the function name
         name: String,
+        // the function template
+        #[arg(short, long)]
+        template: String,
     },
     /// deploy the function to runtime and blockchain
     Deploy,
@@ -117,14 +120,14 @@ struct Commit {
 async fn main() -> Result<(), anyhow::Error> {
     let cli = Cli::parse();
     match &cli.command {
-        Some(Commands::Create { name }) => {
-            create_action(name.clone()).await?;
+        Some(Commands::Create { name, template }) => {
+            create_action(name.clone(), template.clone()).await?;
         }
         Some(Commands::Deploy) => {
             deploy_action().await?;
         }
         Some(Commands::Run) => {
-            run_action().await?;
+            println!("This command is still WIP")
         }
         Some(Commands::Call { name }) => {
             call_action(name.clone()).await?;
@@ -147,7 +150,17 @@ async fn main() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-async fn create_action(name: String) -> Result<(), anyhow::Error> {
+async fn create_action(name: String, template: String) -> Result<(), anyhow::Error> {
+    if template.as_str() == "deno" {
+        create_deno_action(name).await
+    } else if template.as_str() == "node" {
+        create_node_action(name).await
+    } else {
+        Ok(())
+    }
+}
+
+async fn create_deno_action(name: String) -> Result<(), anyhow::Error> {
     let path = name;
     fs::create_dir(&path)?;
     let conf = format!(
@@ -184,6 +197,48 @@ const res = await handler();
 console.log(res);    
 "#;
     let test_file = format!("{}/test.ts", &path);
+    fs::write(test_file, test_tpl.trim_start_matches('\n'))?;
+
+    println!("🎉 Awesome, The [{}] function is created!", path);
+    println!("🚑 change the owner to your Sui address!");
+
+    Ok(())
+}
+
+async fn create_node_action(name: String) -> Result<(), anyhow::Error> {
+    let path: String = name;
+    fs::create_dir(&path)?;
+
+    let conf = format!(
+        r#"
+[basic]
+version = "0.0.1" 
+name = "{}" # your function name, it's unique.
+description = ""
+owner = "0x5d547ccd49f6f35fc0dd66fb76e032e8fbf570ff" # Your sui address"#,
+        &path
+    );
+    let conf_file = format!("{}/config.toml", &path);
+    fs::write(conf_file, conf.trim_start_matches('\n'))?;
+
+    let tpl = r#"
+    // You can import inner sdk    
+    export async function handler(payload) {
+        console.log(payload)
+    }
+    "#;
+
+    let main_file = format!("{}/main.mjs", &path);
+    fs::write(main_file, tpl.trim_start_matches('\n'))?;
+
+    let test_tpl = r#"
+// this file is for faas3 run
+import { handler } from "./main.mjs";
+
+const res = await handler();
+console.log(res);    
+"#;
+    let test_file = format!("{}/test.mjs", &path);
     fs::write(test_file, test_tpl.trim_start_matches('\n'))?;
 
     println!("🎉 Awesome, The [{}] function is created!", path);
@@ -249,8 +304,7 @@ async fn call_action(name: String) -> Result<(), anyhow::Error> {
 
 async fn post_action(name: String, body: String) -> Result<(), anyhow::Error> {
     println!("{:?} ==== {:?}", name, body);
-    let url = format!("https://faas3.vercel.app/api/runner/{}", &name);
-    // let url = format!("http://localhost:3000/api/runner/{}", &name);
+    let url = format!("https://faas3.fly.dev/api/runner/{}", &name);
     let resp: serde_json::Value = reqwest::Client::new()
         .post(url)
         .json(&body)

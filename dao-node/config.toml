@@ -1,4 +1,5 @@
 [basic]
+template = "node"
 version = "0.0.1" 
 name = "dao-node" # your function name, it's unique.
 description = ""

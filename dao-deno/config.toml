@@ -1,5 +1,6 @@
 [basic]
+template = "deno"
 version = "0.0.1" 
-name = "dao-demo" # your function name, it's unique.
+name = "dao-deno" # your function name, it's unique.
 description = ""
 owner = "0x5d547ccd49f6f35fc0dd66fb76e032e8fbf570ff" # Your sui address

@@ -2,6 +2,7 @@ use anyhow::Ok;
 use clap::{Parser, Subcommand};
 
 use serde::{Deserialize, Serialize};
+use std::fmt::format;
 use std::process::Command;
 use std::{any, fs};
 use std::{path::PathBuf, str::FromStr};
@@ -26,6 +27,7 @@ struct MoveFunc {
     txn_hash: Option<String>,
     owner: String,
     object_id: String,
+    template: String,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
@@ -74,11 +76,6 @@ enum Commands {
     Call {
         /// the function name
         name: String,
-    },
-    /// remote call the function by post method
-    Post {
-        /// the function name
-        name: String,
         /// the post body, it's json string
         #[arg(short, long)]
         body: String,
@@ -104,6 +101,7 @@ struct Config {
 
 #[derive(Debug, Deserialize)]
 struct BasicConfig {
+    template: String,
     version: String,
     name: String,
     description: String,
@@ -129,11 +127,8 @@ async fn main() -> Result<(), anyhow::Error> {
         Some(Commands::Run) => {
             println!("This command is still WIP")
         }
-        Some(Commands::Call { name }) => {
-            call_action(name.clone()).await?;
-        }
-        Some(Commands::Post { name, body }) => {
-            post_action(name.clone(), body.clone()).await?;
+        Some(Commands::Call { name, body }) => {
+            call_action(name.clone(), body.clone()).await?;
         }
         Some(Commands::List {
             owner: _,
@@ -166,6 +161,7 @@ async fn create_deno_action(name: String) -> Result<(), anyhow::Error> {
     let conf = format!(
         r#"
 [basic]
+template = "deno"
 version = "0.0.1" 
 name = "{}" # your function name, it's unique.
 description = ""
@@ -212,6 +208,7 @@ async fn create_node_action(name: String) -> Result<(), anyhow::Error> {
     let conf = format!(
         r#"
 [basic]
+template = "node"
 version = "0.0.1" 
 name = "{}" # your function name, it's unique.
 description = ""
@@ -248,10 +245,18 @@ console.log(res);
 }
 
 async fn deploy_action() -> Result<(), anyhow::Error> {
-    let content = collect("main.mjs".to_string()).await?;
     let conf = fs::read_to_string("config.toml")?;
     let config: Config = toml::from_str(conf.as_str())?;
     println!("📖 Your Config is {:#?}", config);
+
+    let mut name = String::default();
+    if config.basic.template.as_str() == "deno" {
+        name = "main.ts".to_string();
+    } else if config.basic.template.as_str() == "node" {
+        name = "main.mjs".to_string();
+    }
+
+    let content = collect(name).await?;
 
     let mut move_func = MoveFunc {
         name: config.basic.name,
@@ -261,6 +266,7 @@ async fn deploy_action() -> Result<(), anyhow::Error> {
         owner: config.basic.owner,
         txn_hash: None,
         object_id: "".to_string(),
+        template: config.basic.template,
     };
 
     // println!("🚀 Deploying it to blockchain...");
@@ -290,10 +296,27 @@ async fn run_action() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-async fn call_action(name: String) -> Result<(), anyhow::Error> {
+async fn call_action(name: String, body: String) -> Result<(), anyhow::Error> {
+    let url = format!("https://faas3.deno.dev/api/functions/{}", &name);
+    let resp: serde_json::Value = reqwest::Client::new().get(url).send().await?.json().await?;
+    let func = serde_json::from_value::<MoveFunc>(resp)?;
+
+    if func.template.as_str() == "deno" {
+        call_deno_action(name, body).await
+    } else if func.template.as_str() == "node" {
+        call_node_action(name, body).await
+    } else {
+        panic!("not support template")
+    }
+}
+
+async fn call_deno_action(name: String, body: String) -> Result<(), anyhow::Error> {
+    let url = format!("https://faas3.deno.dev/api/runner/{}", &name);
+    let url = format!("http://localhost:8000/api/runner/{}", &name);
+
     let resp = reqwest::Client::new()
-        .post("https://faas3.deno.dev/api/moverun")
-        .json(&serde_json::json!({ "name": name }))
+        .post(url)
+        .json(&body)
         .send()
         .await?
         .text()
@@ -302,8 +325,7 @@ async fn call_action(name: String) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-async fn post_action(name: String, body: String) -> Result<(), anyhow::Error> {
-    println!("{:?} ==== {:?}", name, body);
+async fn call_node_action(name: String, body: String) -> Result<(), anyhow::Error> {
     let url = format!("https://faas3.fly.dev/api/runner/{}", &name);
     let resp: serde_json::Value = reqwest::Client::new()
         .post(url)
@@ -313,7 +335,7 @@ async fn post_action(name: String, body: String) -> Result<(), anyhow::Error> {
         .json()
         .await?;
 
-    println!("the resp is {:#?}", resp);
+    println!("✅ Your resp is:\n {:#?}", resp);
     Ok(())
 }
 
@@ -357,8 +379,10 @@ async fn collect(filename: String) -> Result<String, anyhow::Error> {
 }
 
 async fn upload(move_func: &MoveFunc) -> Result<(), anyhow::Error> {
+    let url = "https://faas3.deno.dev/api/deploy";
+
     let resp: serde_json::Value = reqwest::Client::new()
-        .post("https://faas3.deno.dev/api/deploy")
+        .post(url)
         .json(&move_func)
         .send()
         .await?

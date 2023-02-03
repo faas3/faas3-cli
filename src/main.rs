@@ -326,7 +326,8 @@ async fn call_deno_action(name: String, body: String) -> Result<(), anyhow::Erro
 }
 
 async fn call_node_action(name: String, body: String) -> Result<(), anyhow::Error> {
-    let url = format!("https://faas3.fly.dev/api/runner/{}", &name);
+    let url = format!("https://faas3.up.railway.app/api/runner/{}", &name);
+
     let resp: serde_json::Value = reqwest::Client::new()
         .post(url)
         .json(&body)

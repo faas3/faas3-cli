@@ -1,8 +1,6 @@
 use anyhow::Ok;
 use clap::{Parser, Subcommand};
-
 use serde::{Deserialize, Serialize};
-
 use std::fs;
 use std::process::Command;
 use std::{path::PathBuf, str::FromStr};
@@ -90,6 +88,11 @@ enum Commands {
         #[arg(short, long)]
         source: String,
     },
+    /// show the function info
+    Info {
+        /// the function name
+        name: String,
+    },
     /// verify the runtime function, which should equal to the on-chain code.
     Verify { name: String },
 }
@@ -102,6 +105,7 @@ struct Config {
 #[derive(Debug, Deserialize)]
 struct BasicConfig {
     template: String,
+    #[allow(unused)]
     version: String,
     name: String,
     description: String,
@@ -138,6 +142,9 @@ async fn main() -> Result<(), anyhow::Error> {
         }
         Some(Commands::Verify { name }) => {
             verify_action(name.clone()).await?;
+        }
+        Some(Commands::Info { name }) => {
+            info_action(name.clone()).await?;
         }
         None => {}
     }
@@ -279,7 +286,8 @@ async fn deploy_action() -> Result<(), anyhow::Error> {
     Ok(())
 }
 
-async fn run_action() -> Result<(), anyhow::Error> {
+#[allow(unused)]
+async fn run_deno_action() -> Result<(), anyhow::Error> {
     println!("🎬 Run function local...\n");
 
     let output = Command::new("deno")
@@ -374,6 +382,17 @@ async fn verify_action(name: String) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
+async fn info_action(name: String) -> Result<(), anyhow::Error> {
+    println!("🚀 The {:?} detail...", name);
+
+    let url = format!("https://faas3.deno.dev/api/functions/{}", &name);
+    let resp: serde_json::Value = reqwest::Client::new().get(url).send().await?.json().await?;
+    let func = serde_json::from_value::<MoveFunc>(resp)?;
+
+    println!("Function in runtime:\n {:#?}", func);
+    Ok(())
+}
+
 async fn collect(filename: String) -> Result<String, anyhow::Error> {
     let content = fs::read_to_string(filename)?;
     Ok(content)
@@ -443,6 +462,7 @@ async fn mint(move_func: &MoveFunc) -> Result<String, anyhow::Error> {
     Ok(func_id.to_string())
 }
 
+#[allow(unused)]
 fn default_keystore_path() -> PathBuf {
     match dirs::home_dir() {
         Some(v) => v.join(".sui").join("sui_config").join("sui.keystore"),

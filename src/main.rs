@@ -3,8 +3,8 @@ use clap::{Parser, Subcommand};
 
 use serde::{Deserialize, Serialize};
 
+use std::fs;
 use std::process::Command;
-use std::{fs};
 use std::{path::PathBuf, str::FromStr};
 use sui_keys::keystore::{AccountKeystore, FileBasedKeystore, Keystore};
 use sui_sdk::rpc_types::SuiData;

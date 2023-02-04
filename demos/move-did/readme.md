@@ -1,5 +1,53 @@
 # move-did demo
 
+## use curl
+
+```bash
+$ curl --location --request POST 'https://faas3.up.railway.app/api/runner/move-did' \
+--header 'Content-Type: application/json' \
+--data-raw '{
+    "addr" : "0x2df41622c0c1baabaa73b2c24360d205e23e803959ebbcb0e5b80462165893ed"
+}'
+
+{
+    "name": {
+        "id": "did:movedid:0x2df41622c0c1baabaa73b2c24360d205e23e803959ebbcb0e5b80462165893ed",
+        "type": "Human",
+        "description": "My First DID",
+        "verification_methods": [
+            {
+                "id": "did:movedid:0x2df41622c0c1baabaa73b2c24360d205e23e803959ebbcb0e5b80462165893ed-0x73c7448760517E3E6e416b2c130E3c6dB2026A1d}",
+                "internal_id": "1",
+                "properties": {
+                    "description": "A Test Addr",
+                    "chains": [
+                        "ethereum"
+                    ]
+                },
+                "type": "EcdsaSecp256k1VerificationKey2019",
+                "addr": "0x73c7448760517E3E6e416b2c130E3c6dB2026A1d",
+                "pubkey": "",
+                "verificated": false,
+                "verification": {
+                    "msg": "50789538.1.nonce_geek",
+                    "signature": "0x"
+                },
+                "created_at": "1673525423",
+                "expired_at": "1705061423"
+            }
+        ],
+        "services": {
+            "id": "did:movedid:0x2df41622c0c1baabaa73b2c24360d205e23e803959ebbcb0e5b80462165893ed-github}",
+            "description": "leeduckgo's github",
+            "verification_url": "https://gist.github.com/0x",
+            "url": "https://github.com/leeduckgo"
+        }
+    }
+}
+```
+
+## user faas-cli
+
 ```bash
 $ cargo run -- call move-did --body '{"addr" : "0x2df41622c0c1baabaa73b2c24360d205e23e803959ebbcb0e5b80462165893ed"}'
 
@@ -35,34 +83,4 @@ $ cargo run -- call move-did --body '{"addr" : "0x2df41622c0c1baabaa73b2c24360d2
     },
 }
 
-```
-
-```json
-{
-  "description": "My First DID",
-  "id": "did:movedid:0x2df41622c0c1baabaa73b2c24360d205e23e803959ebbcb0e5b80462165893ed",
-  "services": [
-    {
-      "description": "leeduckgo's github",
-      "id": "did:movedid:0x2df41622c0c1baabaa73b2c24360d205e23e803959ebbcb0e5b80462165893ed.github",
-      "url": "https://github.com/leeduckgo",
-      "verification_url": "https://gist.github.com/0x"
-    }
-  ],
-  "type": "Human",
-  "verification_methods": [
-    {
-      "addr": "0x73c7448760517E3E6e416b2c130E3c6dB2026A1d",
-      "created_at": "1673525423",
-      "expired_at": "1705061423",
-      "id": "did:movedid:0x2df41622c0c1baabaa73b2c24360d205e23e803959ebbcb0e5b80462165893ed#key-1",
-      "internal_id": 1,
-      "properties": { "chains": ["ethereum"], "description": "A Test Addr" },
-      "pubkey": "",
-      "type": "EcdsaSecp256k1VerificationKey2019",
-      "verificated": false,
-      "verification": { "msg": "50789538.1.nonce_geek", "signature": "0x" }
-    }
-  ]
-}
 ```

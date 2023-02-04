@@ -84,9 +84,9 @@ enum Commands {
         #[arg(short, long)]
         owner: String,
 
-        /// the funcitons of source, can only be: runtime or chain
+        /// the functions in template
         #[arg(short, long)]
-        source: String,
+        template: String,
     },
     /// show the function info
     Info {
@@ -136,7 +136,7 @@ async fn main() -> Result<(), anyhow::Error> {
         }
         Some(Commands::List {
             owner: _,
-            source: _,
+            template: _,
         }) => {
             println!("🚧 This command is still WIP!");
         }
@@ -305,7 +305,7 @@ async fn run_deno_action() -> Result<(), anyhow::Error> {
 }
 
 async fn call_action(name: String, body: String) -> Result<(), anyhow::Error> {
-    let url = format!("https://faas3.deno.dev/api/functions/{}", &name);
+    let url = format!("https://faas3-fresh.deno.dev/api/functions/{}", &name);
     let resp: serde_json::Value = reqwest::Client::new().get(url).send().await?.json().await?;
     let func = serde_json::from_value::<MoveFunc>(resp)?;
 
@@ -319,8 +319,7 @@ async fn call_action(name: String, body: String) -> Result<(), anyhow::Error> {
 }
 
 async fn call_deno_action(name: String, body: String) -> Result<(), anyhow::Error> {
-    let _url = format!("https://faas3.deno.dev/api/runner/{}", &name);
-    let url = format!("http://localhost:8000/api/runner/{}", &name);
+    let url = format!("https://faas3-fresh.deno.dev/api/runner/{}", &name);
 
     let resp = reqwest::Client::new()
         .post(url)
@@ -334,7 +333,7 @@ async fn call_deno_action(name: String, body: String) -> Result<(), anyhow::Erro
 }
 
 async fn call_node_action(name: String, body: String) -> Result<(), anyhow::Error> {
-    let url = format!("https://faas3.up.railway.app/api/runner/{}", &name);
+    let url = format!("https://faas3-next.up.railway.app/api/runner/{}", &name);
 
     let resp: serde_json::Value = reqwest::Client::new()
         .post(url)
@@ -351,7 +350,7 @@ async fn call_node_action(name: String, body: String) -> Result<(), anyhow::Erro
 async fn verify_action(name: String) -> Result<(), anyhow::Error> {
     println!("🚀 Verifying the function: {:?}", name);
 
-    let url = format!("https://faas3.deno.dev/api/functions/{}", &name);
+    let url = format!("https://faas3-fresh.deno.dev/api/functions/{}", &name);
     let resp: serde_json::Value = reqwest::Client::new().get(url).send().await?.json().await?;
     let func = serde_json::from_value::<MoveFunc>(resp)?;
 
@@ -385,7 +384,7 @@ async fn verify_action(name: String) -> Result<(), anyhow::Error> {
 async fn info_action(name: String) -> Result<(), anyhow::Error> {
     println!("🚀 The {:?} detail...", name);
 
-    let url = format!("https://faas3.deno.dev/api/functions/{}", &name);
+    let url = format!("https://faas3-fresh.deno.dev/api/functions/{}", &name);
     let resp: serde_json::Value = reqwest::Client::new().get(url).send().await?.json().await?;
     let func = serde_json::from_value::<MoveFunc>(resp)?;
 
@@ -399,7 +398,7 @@ async fn collect(filename: String) -> Result<String, anyhow::Error> {
 }
 
 async fn upload(move_func: &MoveFunc) -> Result<(), anyhow::Error> {
-    let url = "https://faas3.deno.dev/api/deploy";
+    let url = "https://faas3-fresh.deno.dev/api/deploy";
 
     let resp: serde_json::Value = reqwest::Client::new()
         .post(url)
@@ -413,6 +412,7 @@ async fn upload(move_func: &MoveFunc) -> Result<(), anyhow::Error> {
     Ok(())
 }
 
+#[allow(unused)]
 async fn mint(move_func: &MoveFunc) -> Result<String, anyhow::Error> {
     let sui = SuiClient::new("https://fullnode.devnet.sui.io:443", None, None).await?;
 

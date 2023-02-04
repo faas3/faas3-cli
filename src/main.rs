@@ -307,12 +307,12 @@ async fn run_deno_action() -> Result<(), anyhow::Error> {
 async fn call_action(name: String, body: String) -> Result<(), anyhow::Error> {
     let url = format!("https://faas3.deno.dev/api/runner/{}", &name);
 
-    let resp = reqwest::Client::new()
+    let resp: serde_json::Value = reqwest::Client::new()
         .post(url)
         .json(&body)
         .send()
         .await?
-        .text()
+        .json()
         .await?;
     println!("✅ Your resp is:\n {:#?}", resp);
     Ok(())

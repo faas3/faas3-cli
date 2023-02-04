@@ -14,6 +14,7 @@ export async function handler(payload) {
   );
 
   const {
+    key_addr: keyAddr,
     type: rawType,
     description,
     addrs,
@@ -24,17 +25,16 @@ export async function handler(payload) {
   const syntax =
     "did:movedid:0x2df41622c0c1baabaa73b2c24360d205e23e803959ebbcb0e5b80462165893ed";
 
+  const methods = await genVerificationMethods(client, handle, syntax, key);
+
+  const services = await genServices(client, keyAddr, syntax);
+
   const result = {
     id: syntax,
     type: genType(rawType),
     description,
-    verification_methods: await genVerificationMethods(
-      client,
-      handle,
-      syntax,
-      key
-    ),
-    services: [],
+    verification_methods: methods,
+    services,
   };
 
   return result;
@@ -67,6 +67,31 @@ async function genVerificationMethods(client, handle, syntax, key) {
       expired_at: item.expired_at,
     },
   ];
+}
+
+async function genServices(client, keyAddr, syntax) {
+  const ServiceAggregator = await client.getAccountResource(
+    keyAddr,
+    "0x65f4a0954aa6e68d2381ff98b7676df2fe57beee3ca37a4a8a57fa621c1db872::service_aggregator::ServiceAggregator"
+  );
+  const {
+    names: keys,
+    services_map: { handle },
+  } = ServiceAggregator.data;
+
+  const item = await client.getTableItem(handle, {
+    key_type: "0x1::string::String",
+    value_type:
+      "0x65f4a0954aa6e68d2381ff98b7676df2fe57beee3ca37a4a8a57fa621c1db872::service_aggregator::Service",
+    key: keys[0],
+  });
+
+  return {
+    id: `${syntax}-${keys[0]}}`,
+    description: item.description,
+    verification_url: item.verification_url,
+    url: item.url,
+  };
 }
 
 function addrType(type) {

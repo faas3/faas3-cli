@@ -82,11 +82,11 @@ enum Commands {
     List {
         /// the functions of owner
         #[arg(short, long)]
-        owner: String,
+        owner: Option<String>,
 
         /// the functions in template
         #[arg(short, long)]
-        template: String,
+        template: Option<String>,
     },
     /// show the function info
     Info {
@@ -134,11 +134,8 @@ async fn main() -> Result<(), anyhow::Error> {
         Some(Commands::Call { name, body }) => {
             call_action(name.clone(), body.clone()).await?;
         }
-        Some(Commands::List {
-            owner: _,
-            template: _,
-        }) => {
-            println!("🚧 This command is still WIP!");
+        Some(Commands::List { owner, template }) => {
+            list_action(owner.clone(), template.clone()).await?;
         }
         Some(Commands::Verify { name }) => {
             verify_action(name.clone()).await?;
@@ -349,6 +346,14 @@ async fn verify_action(name: String) -> Result<(), anyhow::Error> {
 
     assert!(meta.content == func.content);
     println!("{} is verified", &name);
+    Ok(())
+}
+
+async fn list_action(owner: Option<String>, template: Option<String>) -> Result<(), anyhow::Error> {
+    let url = "https://faas3.deno.dev/api/functions";
+    let resp: serde_json::Value = reqwest::Client::new().get(url).send().await?.json().await?;
+    let func_list = serde_json::from_value::<Vec<MoveFunc>>(resp)?;
+    println!("The function list is\n: {:#?}", func_list);
     Ok(())
 }
 

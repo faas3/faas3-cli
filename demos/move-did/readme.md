@@ -82,5 +82,4 @@ $ cargo run -- call move-did --body '{"addr" : "0x2df41622c0c1baabaa73b2c24360d2
         "services": Array [],
     },
 }
-
 ```

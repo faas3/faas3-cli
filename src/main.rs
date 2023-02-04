@@ -2,9 +2,9 @@ use anyhow::Ok;
 use clap::{Parser, Subcommand};
 
 use serde::{Deserialize, Serialize};
-use std::fmt::format;
+
 use std::process::Command;
-use std::{any, fs};
+use std::{fs};
 use std::{path::PathBuf, str::FromStr};
 use sui_keys::keystore::{AccountKeystore, FileBasedKeystore, Keystore};
 use sui_sdk::rpc_types::SuiData;
@@ -258,7 +258,7 @@ async fn deploy_action() -> Result<(), anyhow::Error> {
 
     let content = collect(name).await?;
 
-    let mut move_func = MoveFunc {
+    let move_func = MoveFunc {
         name: config.basic.name,
         description: config.basic.description,
         url: None,
@@ -311,7 +311,7 @@ async fn call_action(name: String, body: String) -> Result<(), anyhow::Error> {
 }
 
 async fn call_deno_action(name: String, body: String) -> Result<(), anyhow::Error> {
-    let url = format!("https://faas3.deno.dev/api/runner/{}", &name);
+    let _url = format!("https://faas3.deno.dev/api/runner/{}", &name);
     let url = format!("http://localhost:8000/api/runner/{}", &name);
 
     let resp = reqwest::Client::new()

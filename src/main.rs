@@ -353,17 +353,28 @@ async fn list_action(owner: Option<String>, template: Option<String>) -> Result<
     let url = "https://faas3.deno.dev/api/functions";
     let resp: serde_json::Value = reqwest::Client::new().get(url).send().await?.json().await?;
     let func_list = serde_json::from_value::<Vec<MoveFunc>>(resp)?;
-    println!("The function list is\n: {:#?}", func_list);
+    func_list
+        .iter()
+        .filter(|item| match owner.clone() {
+            Some(o) => o == item.owner,
+            None => true,
+        })
+        .filter(|item| match template.clone() {
+            Some(t) => t == item.template,
+            None => true,
+        })
+        .map(|item| (item.name.clone(), item.template.clone(), item.owner.clone()))
+        .for_each(|item| {
+            println!("{:#?}", item);
+        });
     Ok(())
 }
 
 async fn info_action(name: String) -> Result<(), anyhow::Error> {
     println!("🚀 The {:?} detail...", name);
-
     let url = format!("https://faas3.deno.dev/api/functions/{}", &name);
     let resp: serde_json::Value = reqwest::Client::new().get(url).send().await?.json().await?;
     let func = serde_json::from_value::<MoveFunc>(resp)?;
-
     println!("Function in runtime:\n {:#?}", func);
     Ok(())
 }

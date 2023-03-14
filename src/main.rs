@@ -3,7 +3,7 @@ use clap::{Parser, Subcommand};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::process::Command;
-use std::{path::PathBuf, str::FromStr};
+
 #[derive(Debug, Serialize, Deserialize)]
 struct MoveFunc {
     name: String,

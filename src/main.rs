@@ -1,12 +1,9 @@
 use anyhow::Ok;
-use clap::{Parser, Subcommand};
+use clap::Parser;
 use cli::{
     call_action, create_action, deploy_action, info_action, list_action, verify_action, Cli,
     Commands,
 };
-use serde::{Deserialize, Serialize};
-use std::fs;
-use std::process::Command;
 
 mod cli;
 

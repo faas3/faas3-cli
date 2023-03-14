@@ -7,9 +7,6 @@ edition = "2021"
 
 [dependencies]
 anyhow = "1.0.68"
-sui-sdk = { git = "https://github.com/MystenLabs/sui", branch = "devnet" }
-sui-keys = { git = "https://github.com/MystenLabs/sui", branch = "devnet" }
-sui-types = { git = "https://github.com/MystenLabs/sui", branch = "devnet" }
 tokio = { version = "1.24.2", features = ["full"] }
 dirs = "4.0.0"
 reqwest = "0.11.14"

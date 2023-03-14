@@ -4,18 +4,6 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::process::Command;
 use std::{path::PathBuf, str::FromStr};
-use sui_keys::keystore::{AccountKeystore, FileBasedKeystore, Keystore};
-use sui_sdk::rpc_types::SuiData;
-use sui_sdk::{
-    json::SuiJsonValue,
-    types::{
-        base_types::{ObjectID, SuiAddress},
-        messages::Transaction,
-    },
-    SuiClient,
-};
-use sui_types::intent::Intent;
-use sui_types::messages::ExecuteTransactionRequestType;
 #[derive(Debug, Serialize, Deserialize)]
 struct MoveFunc {
     name: String,
@@ -397,62 +385,4 @@ async fn upload(move_func: &MoveFunc) -> Result<(), anyhow::Error> {
     let a = serde_json::from_value::<DeployResponse>(resp);
     println!("{:#?}", a);
     Ok(())
-}
-
-#[allow(unused)]
-async fn mint(move_func: &MoveFunc) -> Result<String, anyhow::Error> {
-    let sui = SuiClient::new("https://fullnode.devnet.sui.io:443", None, None).await?;
-
-    let keystore_path = default_keystore_path();
-    let keystore = Keystore::File(FileBasedKeystore::new(&keystore_path)?);
-    let my_address = SuiAddress::from_str(move_func.owner.as_str())?;
-    let package_object_id = ObjectID::from_str("0x8ea46c0da1d02a0138e513342f07accac01d44a1")?;
-
-    let mint_call = sui
-        .transaction_builder()
-        .move_call(
-            my_address,
-            package_object_id,
-            "faas_nft",
-            "mint",
-            vec![],
-            vec![
-                SuiJsonValue::from_str(move_func.name.as_str())?,
-                SuiJsonValue::from_str(move_func.description.as_str())?,
-                SuiJsonValue::from_str("")?,
-                SuiJsonValue::from_str(move_func.content.as_str())?,
-            ],
-            None,
-            1000,
-        )
-        .await?;
-
-    let signature = keystore.sign_secure(&my_address, &mint_call, Intent::default())?;
-    let response = sui
-        .quorum_driver()
-        .execute_transaction(
-            Transaction::from_data(mint_call, Intent::default(), signature).verify()?,
-            Some(ExecuteTransactionRequestType::WaitForLocalExecution),
-        )
-        .await?;
-    assert!(response.confirmed_local_execution);
-
-    let func_id = response
-        .effects
-        .unwrap()
-        .created
-        .first()
-        .unwrap()
-        .reference
-        .object_id;
-    println!("the object id is {:?}", func_id);
-    Ok(func_id.to_string())
-}
-
-#[allow(unused)]
-fn default_keystore_path() -> PathBuf {
-    match dirs::home_dir() {
-        Some(v) => v.join(".sui").join("sui_config").join("sui.keystore"),
-        None => panic!("cannot obtain home directory path"),
-    }
 }

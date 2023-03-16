@@ -4,6 +4,8 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use std::process::Command;
 
+use crate::action::{Action, SupaAction};
+
 #[derive(Debug, Serialize, Deserialize)]
 struct MoveFunc {
     name: String,
@@ -50,12 +52,6 @@ struct BasicConfig {
     name: String,
     description: String,
     owner: String,
-}
-
-#[derive(PartialEq, Default, Clone, Debug)]
-struct Commit {
-    hash: String,
-    message: String,
 }
 
 #[derive(Parser, Debug)]
@@ -123,7 +119,7 @@ async fn create_deno_action(name: String) -> Result<(), anyhow::Error> {
         r#"
 [basic]
 template = "deno"
-version = "0.0.1" 
+version = "0.0.1"
 name = "{}" # your function name, it's unique.
 description = ""
 owner = "0x5d547ccd49f6f35fc0dd66fb76e032e8fbf570ff" # Your sui address"#,
@@ -151,7 +147,7 @@ export async function handler(payload = {}) {
 import { handler } from "./main.ts";
 
 const res = await handler();
-console.log(res);    
+console.log(res);
 "#;
     let test_file = format!("{}/test.ts", &path);
     fs::write(test_file, test_tpl.trim_start_matches('\n'))?;
@@ -170,7 +166,7 @@ async fn create_node_action(name: String) -> Result<(), anyhow::Error> {
         r#"
 [basic]
 template = "node"
-version = "0.0.1" 
+version = "0.0.1"
 name = "{}" # your function name, it's unique.
 description = ""
 owner = "0x5d547ccd49f6f35fc0dd66fb76e032e8fbf570ff" # Your sui address"#,
@@ -180,7 +176,7 @@ owner = "0x5d547ccd49f6f35fc0dd66fb76e032e8fbf570ff" # Your sui address"#,
     fs::write(conf_file, conf.trim_start_matches('\n'))?;
 
     let tpl = r#"
-    // You can import inner sdk    
+    // You can import inner sdk
     export async function handler(payload) {
         console.log(payload)
     }
@@ -194,7 +190,7 @@ owner = "0x5d547ccd49f6f35fc0dd66fb76e032e8fbf570ff" # Your sui address"#,
 import { handler } from "./main.mjs";
 
 const res = await handler();
-console.log(res);    
+console.log(res);
 "#;
     let test_file = format!("{}/test.mjs", &path);
     fs::write(test_file, test_tpl.trim_start_matches('\n'))?;
@@ -202,6 +198,20 @@ console.log(res);
     println!("🎉 Awesome, The [{}] function is created!", path);
     println!("🚑 change the owner to your Sui address!");
 
+    Ok(())
+}
+
+async fn upload(move_func: &MoveFunc) -> Result<(), anyhow::Error> {
+    let url = "https://faas3.deno.dev/api/deploy";
+    let resp: serde_json::Value = reqwest::Client::new()
+        .post(url)
+        .json(&move_func)
+        .send()
+        .await?
+        .json()
+        .await?;
+    let a = serde_json::from_value::<DeployResponse>(resp);
+    println!("{:#?}", a);
     Ok(())
 }
 
@@ -217,8 +227,7 @@ pub async fn deploy_action() -> Result<(), anyhow::Error> {
         name = "main.mjs".to_string();
     }
 
-    let content = collect(name).await?;
-
+    let content = fs::read_to_string(name)?;
     let move_func = MoveFunc {
         name: config.basic.name,
         description: config.basic.description,
@@ -230,30 +239,7 @@ pub async fn deploy_action() -> Result<(), anyhow::Error> {
         template: config.basic.template,
     };
 
-    // println!("🚀 Deploying it to blockchain...");
-    // let object_id = mint(&move_func).await?;
-    // move_func.object_id = object_id;
-
-    println!("🚀 Loading it to remote db...");
     upload(&move_func).await?;
-
-    Ok(())
-}
-
-#[allow(unused)]
-async fn run_deno_action() -> Result<(), anyhow::Error> {
-    println!("🎬 Run function local...\n");
-
-    let output = Command::new("deno")
-        .arg("run")
-        .arg("--unstable")
-        .arg("-A")
-        .arg("test.ts")
-        .output()?;
-    if !output.status.success() {
-        panic!("output status error");
-    }
-    println!("{}", String::from_utf8(output.stdout)?);
 
     Ok(())
 }
@@ -307,25 +293,27 @@ pub async fn info_action(name: String) -> Result<(), anyhow::Error> {
     let resp: serde_json::Value = reqwest::Client::new().get(url).send().await?.json().await?;
     let func = serde_json::from_value::<MoveFunc>(resp)?;
     println!("Function in runtime:\n {:#?}", func);
+
+    let action = SupaAction::new();
+    action.info().await?;
+
     Ok(())
 }
 
-async fn collect(filename: String) -> Result<String, anyhow::Error> {
-    let content = fs::read_to_string(filename)?;
-    Ok(content)
-}
+#[allow(unused)]
+async fn run_deno_action() -> Result<(), anyhow::Error> {
+    println!("🎬 Run function local...\n");
 
-async fn upload(move_func: &MoveFunc) -> Result<(), anyhow::Error> {
-    let url = "https://faas3.deno.dev/api/deploy";
+    let output = Command::new("deno")
+        .arg("run")
+        .arg("--unstable")
+        .arg("-A")
+        .arg("test.ts")
+        .output()?;
+    if !output.status.success() {
+        panic!("output status error");
+    }
+    println!("{}", String::from_utf8(output.stdout)?);
 
-    let resp: serde_json::Value = reqwest::Client::new()
-        .post(url)
-        .json(&move_func)
-        .send()
-        .await?
-        .json()
-        .await?;
-    let a = serde_json::from_value::<DeployResponse>(resp);
-    println!("{:#?}", a);
     Ok(())
 }

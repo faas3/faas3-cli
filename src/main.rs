@@ -5,7 +5,8 @@ use cli::{
     Commands,
 };
 
-mod cli;
+pub mod action;
+pub mod cli;
 
 #[tokio::main]
 async fn main() -> Result<(), anyhow::Error> {

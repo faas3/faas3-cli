@@ -17,3 +17,4 @@ clap = { version = "4.1.4", features = ["derive"] }
 toml = "0.7.1"
 error-chain = "0.12.4"
 regex = "1.7.1"
+async-trait = "0.1.66"
